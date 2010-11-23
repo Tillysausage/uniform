@@ -202,15 +202,19 @@ if(!$.hasOwnProperty("Widget")){
       
       this.divTag.bind({
         "mouseenter.uniform": function(){
+          if (self.divTag.hasClass(this.options.disabledClass)) return false;
           self.divTag.addClass(self.options.hoverClass);
         },
         "mouseleave.uniform": function(){
+          if (self.divTag.hasClass(this.options.disabledClass)) return false;
           self.divTag.removeClass(self.options.hoverClass).removeClass(this.options.activeClass);
         },
         "mousedown.uniform touchbegin.uniform": function(){
+          if (self.divTag.hasClass(this.options.disabledClass)) return false;
           self.divTag.addClass(self.options.activeClass);
         },
         "mouseup.uniform touchend.uniform": function(){
+          if (self.divTag.hasClass(this.options.disabledClass)) return false;
           self.divTag.removeClass(self.options.activeClass);
         }
       });
@@ -315,6 +319,7 @@ if(!$.hasOwnProperty("Widget")){
     
       this.divTag.bind({
         "click.uniform touchend.uniform": function(e){
+          if($(e.target).hasClass(this.options.disabledClass)) return false;
           if($(e.target).is("span") || $(e.target).is("div")){    
             if(self.element[0].dispatchEvent){
               var ev = document.createEvent('MouseEvents');
@@ -326,16 +331,22 @@ if(!$.hasOwnProperty("Widget")){
           }
         },
         "mousedown.uniform": function(e){
+          if($(e.target).hasClass(this.options.disabledClass)) return false;
           if($(e.target).is("div") || $(e.target).is("span")){
             self.element.mousedown(); //pass along mouse down
           }
         },
         "mouseup.uniform": function(e){
+          if($(e.target).hasClass(this.options.disabledClass)) return false;
           if($(e.target).is("div") || $(e.target).is("span")){
             self.element.mouseup(); //pass along mouse up
           }
         }
       });
+      
+      if(this.element.hasClass("disabled")) {
+        this.divTag.addClass(this.options.disabledClass);
+      };
       
       if(tagName == "INPUT" && type == "reset"){
         this.element.bind({
