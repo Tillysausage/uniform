@@ -322,7 +322,16 @@ if(!$.hasOwnProperty("Widget")){
             if(self.element[0].dispatchEvent){
               var ev = document.createEvent('MouseEvents');
               ev.initEvent( 'click', true, true );
-              self.element[0].dispatchEvent(ev);
+                    var res = self.element[0].dispatchEvent(ev);
+
+            	    if((jQuery.browser.msie || jQuery.browser.mozilla) && tagName == "A" && res){
+				        if(self.element.attr('target')=='' || self.element.attr('target')=='_self'){
+					            document.location.href = self.element.attr('href');
+				        }else{
+					        window.open(self.element.attr('href'),self.element.attr('target'));
+    				    }
+			        }
+            	
             }else{
               self.element[0].click();
             }
