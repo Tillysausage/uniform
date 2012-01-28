@@ -98,6 +98,8 @@ if(!$.hasOwnProperty("Widget")){
           result = "uniformInput";
         }else if(type === "submit" || type === "reset" || type === "button") {
           result = "uniformButton";
+        }else if(type === "search"){
+          result = "uniformSearch";
         }else{
           result = "uniform" + type.charAt(0).toUpperCase() + type.slice(1);
         }
@@ -133,6 +135,7 @@ if(!$.hasOwnProperty("Widget")){
       fileBtnClass:    'action',
       fileDefaultText: 'No file selected',
       fileBtnText:     'Choose File',
+      searchClass:     'searcher', 
       checkedClass:    'checked',
       focusClass:      'focus',
       disabledClass:   'disabled',
@@ -180,13 +183,16 @@ if(!$.hasOwnProperty("Widget")){
   // wrapped uniform elements
   var wrappedBase = function() {};
   wrappedBase.prototype = $.extend(true, new uniformBase(), {
-    _init: function(){     
-      this.element.wrap("<div/>").before("<span/>");
-      this.spanTag = this.element.prev("span");
-      this.divTag  = this.element.closest("div");
-      this.element.css("opacity", 0);
-      this._setID(this.element);
-      $.uniform.push(this);
+    _init: function(){
+      if(this.wrapped !== true){
+        this.element.wrap("<div/>").before("<span/>");
+        this.spanTag = this.element.prev("span");
+        this.divTag  = this.element.closest("div");
+        this.element.css("opacity", 0);
+        this._setID(this.element);
+        this.wrapped = true;
+        $.uniform.push(this);
+      }
       this.update();
     },
     
@@ -206,8 +212,7 @@ if(!$.hasOwnProperty("Widget")){
           self.divTag.addClass(self.options.hoverClass);
         },
         "mouseleave.uniform": function(){
-          if (self.divTag.hasClass(this.options.disabledClass)) return false;
-          self.divTag.removeClass(self.options.hoverClass).removeClass(this.options.activeClass);
+          self.divTag.removeClass(self.options.hoverClass).removeClass(self.options.activeClass);
         },
         "mousedown.uniform touchbegin.uniform": function(){
           if (self.divTag.hasClass(this.options.disabledClass)) return false;
@@ -237,12 +242,15 @@ if(!$.hasOwnProperty("Widget")){
   var radioCheckBase = function() {};
   radioCheckBase.prototype = $.extend(true, new wrappedBase(), {
     _init: function(){
-      this.element.wrap("<div/>").wrap("<span/>");
-      this.spanTag = this.element.closest("span");
-      this.divTag  = this.element.closest("div");
-      this.element.css("opacity", 0);
-      this._setID(this.element);
-      $.uniform.push(this);
+      if(this.wrapped !== true){
+        this.element.wrap("<div/>").wrap("<span/>");
+        this.spanTag = this.element.closest("span");
+        this.divTag  = this.element.closest("div");
+        this.element.css("opacity", 0);
+        this._setID(this.element);
+        this.wrapped = true;
+        $.uniform.push(this);
+      }
       this.update();
     },
     
@@ -255,12 +263,12 @@ if(!$.hasOwnProperty("Widget")){
         this.spanTag.addClass(this.options.checkedClass); //reset default checked class
       }
       
-      this.element.bind("check", function(){
+      this.element.bind("check.uniform", function(){
         self.element[0].checked = true;
         self.update();
       });
       
-      this.element.bind("uncheck", function(){
+      this.element.bind("uncheck.uniform", function(){
         self.element[0].checked = false;
         self.update();
       });
@@ -324,7 +332,16 @@ if(!$.hasOwnProperty("Widget")){
             if(self.element[0].dispatchEvent){
               var ev = document.createEvent('MouseEvents');
               ev.initEvent( 'click', true, true );
-              self.element[0].dispatchEvent(ev);
+                    var res = self.element[0].dispatchEvent(ev);
+
+            	    if((jQuery.browser.msie || jQuery.browser.mozilla) && tagName == "A" && res){
+				        if(self.element.attr('target')=='' || self.element.attr('target')=='_self'){
+					            document.location.href = self.element.attr('href');
+				        }else{
+					        window.open(self.element.attr('href'),self.element.attr('target'));
+    				    }
+			        }
+            	
             }else{
               self.element[0].click();
             }
@@ -382,6 +399,12 @@ if(!$.hasOwnProperty("Widget")){
       this.divTag.addClass(this.options.selectClass);
           
       if(this.options.autoWidth === true) {
+        if(width === 0){
+          //ruh roh! select might be hidden.
+          var s = this.element.clone().show().css("opacity", "0"); //clone element
+          width = s.appendTo('body').width(); //append to DOM real quick and grab width
+          s.remove(); //remove element
+        }
         this.divTag.css("width", width + 20);
       }
       
@@ -400,7 +423,7 @@ if(!$.hasOwnProperty("Widget")){
           self.divTag.removeClass(self.options.activeClass);
         },
         "keyup.uniform": function(){
-          self.spanTag.text(self.element.find(":selected").html());
+          self.spanTag.html(self.element.find(":selected").html());
         }
       });
     },
@@ -467,24 +490,27 @@ if(!$.hasOwnProperty("Widget")){
   // uniformBase because it has custom wrapping code
   $.widget("uniform.uniformFile", uniformBase, {
     _init: function(){
-      var btnTag = $('<span>'+this.options.fileBtnText+'</span>'), 
-          filenameTag = $('<span>'+this.options.fileDefaultText+'</span>');
-      
-      this.element.wrap("<div>").after(btnTag).after(filenameTag); //wrap it!
-      
-      this.divTag = this.element.closest("div"); //redefine vars
-      this.filenameTag = this.element.next();
-      this.btnTag = this.filenameTag.next();
-      
-      if(!this.element.css("display") === "none" && this.options.autoHide){
-        this.divTag.hide();
+      if(this.wrapped !== true){
+        var btnTag = $('<span>'+this.options.fileBtnText+'</span>'), 
+            filenameTag = $('<span>'+this.options.fileDefaultText+'</span>');
+
+        this.element.wrap("<div>").after(btnTag).after(filenameTag); //wrap it!
+
+        this.divTag = this.element.closest("div"); //redefine vars
+        this.filenameTag = this.element.next();
+        this.btnTag = this.filenameTag.next();
+
+        if(!this.element.css("display") === "none" && this.options.autoHide){
+          this.divTag.hide();
+        }
+
+        this.element.css("opacity", 0); //set opacity to 0, .hide() would make it's events in-accessible
+        this._disableTextSelection(this.filenameTag);
+        this._disableTextSelection(this.btnTag);
+        this._setID(this.element);
+        this.wrapped = true;
+        $.uniform.push(this);
       }
-      
-      this.element.css("opacity", 0); //set opacity to 0, .hide() would make it's events in-accessible
-      this._disableTextSelection(this.filenameTag);
-      this._disableTextSelection(this.btnTag);
-      this._setID(this.element);
-      $.uniform.push(this);
       this.update();
     },
     
@@ -514,6 +540,30 @@ if(!$.hasOwnProperty("Widget")){
       }
 
       setFilename();
+      
+      this.divTag.bind({
+        "mouseenter.uniform": function(){
+          self.divTag.addClass(self.options.hoverClass);
+        },
+        "mouseleave.uniform": function(){
+          self.divTag.removeClass(self.options.hoverClass).removeClass(self.options.activeClass);
+        },
+        "mousedown.uniform touchbegin.uniform": function(){
+          self.divTag.addClass(self.options.activeClass);
+        },
+        "mouseup.uniform touchend.uniform": function(){
+          self.divTag.removeClass(self.options.activeClass);
+        }
+      });
+      
+      this.element.bind({
+        "focus.uniform": function(){
+          self.divTag.addClass(self.options.focusClass);
+        },
+        "blur.uniform": function(){
+          self.divTag.removeClass(self.options.focusClass);
+        }
+      });
 
       // IE7 doesn't fire onChange until blur or second fire.
       if ($.browser.msie){
@@ -533,6 +583,82 @@ if(!$.hasOwnProperty("Widget")){
     destroy: function(){
       this.element.siblings("span").remove();
       this.element.unwrap();
+      uniformBase.prototype.destroy.call(this);
+    }
+  });
+  
+  // uniformSearch
+  // =================================
+  // Class for search inputs. Inherits from uniformBase
+  // since it needs to be wrapped differently
+  $.widget("uniform.uniformSearch", uniformBase, {
+    _init: function(){
+      if(this.wrapped !== true){
+        var divTag = $("<div/>"),
+            spanTag = $("<span/>"),
+            btn = $("<a href='#'>X</a>");
+
+        this.element.wrap(divTag).wrap(spanTag).after(btn);
+
+        this.divTag = this.element.closest("div"); //redefine vars
+        this.spanTag = this.element.closest("span");
+        this.btn = this.element.siblings("a");
+        this.wrapped = true;
+        this._setID(this.element);
+        $.uniform.push(this);
+      }
+      this.update();
+    },
+    
+    _clearQuery: function(){
+      this.element.val("");
+      this.btn.hide();
+    },
+    
+    update: function(){
+      var self = this;
+      
+      this.element.unbind(".uniform");
+      this.divTag.unbind(".uniform");
+      this.btn.unbind(".uniform");
+      
+      this.divTag.removeClass().addClass(this.options.searchClass);
+      this.btn.hide();
+      
+      this.element.bind({
+        "focus.uniform": function(){
+          self.divTag.addClass(self.options.focusClass);
+        },
+        "blur.uniform": function(){
+          self.divTag.removeClass(self.options.focusClass);
+        },
+        "keyup.uniform": function(){
+          if (self.element.val() !== "") {
+            self.btn.show();
+          } else {
+            self.btn.hide();
+          }
+        }
+      });
+      
+      this.divTag.bind("click.uniform", function(){
+        self.element.focus();
+      });
+      
+      this.btn.bind("click.uniform", function(){
+        self._clearQuery();
+        return false;
+      });
+      
+      if(this.element.attr("disabled")) {
+        this.divTag.addClass(this.options.disabledClass);
+      }
+      
+    },
+    
+    destroy: function(){
+      this.element.siblings("a").remove();
+      this.element.unwrap().unwrap();
       uniformBase.prototype.destroy.call(this);
     }
   });
